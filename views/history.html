@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="css/index.css">
+  <script src="js/socket.io.js"></script>
+  <script src="js/vue.js"></script>
+  <script src="js/jquery-3.3.1.js"></script>
+  <script src="js/element.js"></script>
+  <script src="js/sweet-alert.js"></script>
+  <link rel="stylesheet" href="css/element.css">
+  <link rel="stylesheet" href="css/sweet-alert.css">
+  <title>test</title>
+</head>
+
+<body>
+  <div id="app">
+    <div class="index-nav">
+      <a href="#" v-if="user.username!=''"
+        style="float: right;position: relative;right: 30px;top: 25px;text-decoration: none; margin-left: 30px;">
+        Sign out
+      </a>
+      <a href="#" v-if="user.username!=''"
+        style="float: right;position: relative;right: 30px;top: 25px;text-decoration: none;">
+        {{user.username}}
+      </a>
+
+      <div class="logo-container">
+        <img class="logo">
+        <div style="align-self: center;font-size: 25px;font-family: xingshu;"
+          onclick="window.location.href='/index.html'">Connect 4</div>
+        <el-link class="nav-link" onclick="window.location.href='/index.html'">Homepage</el-link>
+        <el-link class="nav-link" type="primary">Game History</el-link>
+
+      </div>
+    </div>
+    <div id="game-container">
+      <el-table :data="game_list" stripe style="width: 100%">
+        <el-table-column prop="id" label="ID">
+        </el-table-column>
+        <el-table-column prop="name" label="Game Name">
+        </el-table-column>
+        <el-table-column prop="ctime" label="Start Time">
+        </el-table-column>
+        <el-table-column label="Start Time">
+          <template slot-scope="scope">
+            <el-button size="mini" @click="review(scope.row.id)">Review</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+
+    </div>
+  </div>
+
+  <script>
+
+  </script>
+  <script>
+    var vm = new Vue({
+      el: "#app",
+      data: {
+        user: {
+          username: "",
+        },
+        
+        gameName: "",
+        game_list:[]
+      },
+      methods: {
+        review(game_id){
+          localStorage.setItem("game_id",game_id);
+          location.href = location.origin+"/history_game.html";
+        }
+      },
+      beforeCreate() {
+        $.ajax({
+          url: 'http://localhost:3000/history/',
+          method: 'post',
+          xhrFields: {
+            withCredentials: true
+          },
+          success: (response) => {
+            if (response["user_id"] == "-1") {
+              location.href = location.origin + '/login.html';
+            } else {
+              this.game_list = response["game_list"];
+            }
+          }
+        })
+      },
+    })
+  </script>
+</body>
+
+</html>

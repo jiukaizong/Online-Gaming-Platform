@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+   <meta charset="utf-8">
+   <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+   <title>Login</title>
+   <meta name="description" content="">
+   <meta name="keywords" content="">
+   <link href="" rel="stylesheet">
+   <script src="js/vue.js"></script>
+   <script src="js/jquery-3.3.1.js"></script>
+   <script src="js/element.js"></script>
+   <script src="js/sweet-alert.js"></script>
+   <link rel="stylesheet" href="css/element.css">
+   <link rel="stylesheet" href="css/sweet-alert.css">
+   <link rel="stylesheet" href="css/login.css">
+   <style>
+       .v-modal{
+           position: unset;
+       }
+   </style>
+</head>
+
+<body>
+   <div id="app">
+    <div class="banner" >
+        <h2 title="click to login" @click="dialogloginVisible=true">Connect 4 Game</h2>
+    </div>
+    <el-dialog title="Connect 4 Game" :visible.sync="dialogloginVisible" :close-on-click-modal="false" v-loading="loading" 
+        element-loading-text="loading"  element-loading-spinner="el-icon-loading" element-loading-background="rgba(0, 0, 0, 0.8)">
+            <div style="margin: 0 0 20px 20px; font-size: 16px; cursor: pointer;">
+                <span @click="form_type='login'" :class="{'primary-text':form_type == 'login'}">Sign in</span>
+                <span>/</span>
+                <span @click="form_type='signin'" :class="{'primary-text':form_type == 'signin'} ">Sign up</span>
+            </div>
+
+            <div  class="form-input">
+                <span class="tag-span" >Username</span>
+                <el-input v-model="username" maxlength="10" show-word-limit placeholder="username"></el-input>
+            </div>
+
+            <div  class="form-input">
+                <span class="tag-span" >Password</span>
+                <el-input v-model="password" placeholder="password" maxlength="16" show-word-limit show-password></el-input>
+            </div>
+            <div  class="form-input" v-if="form_type =='signin'">
+                <span class="tag-span" style="width: 75px;" >Repeat &nbsp Password</span>
+                <el-input v-model="password_repeat" placeholder="repeat password" maxlength="16" show-word-limit show-password></el-input>
+            </div>
+
+            <div slot="footer" class="dialog-footer">
+                <el-button @click="dialogloginVisible = false">Cancel</el-button>
+                <el-button type="primary" @click='login' v-if="form_type =='login'">Sign in</el-button>
+                <el-button type="primary" @click='signin' v-if="form_type =='signin'">Sign up</el-button>
+            </div>
+        </el-dialog>
+   </div>
+<script>
+   var vm = new Vue({
+      el: "#app",
+      data: {
+          msg: "hello vue",
+          loading:false,
+          username:"",
+          student_no:"",
+          password:"",
+          password_repeat:"",
+          dialogloginVisible:false,
+          form_type:"login",
+      },
+      mounted() {
+        setTimeout(() => {
+            this.dialogloginVisible = true;
+        }, 500);
+      },
+      methods:{
+             login(){
+                if(this.password=="" || this.username==""){
+                    swal("username or password not input","please input","warning");
+                    return;
+                }
+                $.ajax({
+                    url:'http://localhost:3000/login/',
+                    method:'post',
+                    xhrFields:{withCredentials:true},
+                    data:{
+                        username:this.username,
+                        password:this.password
+                    },
+                    success:(response)=>{
+                        if(response["user_id"]=="-1"){
+                            swal("Incorrect account or password","Have a look again carefully","error");
+                        }
+                        else{
+                            location.href = location.origin+"/index.html"
+                        }
+                    }
+                })
+             },
+             signin(){
+                 if(this.password!=this.password_repeat){
+                     swal("repeat password is different from password","input again","warning");
+                     return;
+                 }
+                $.ajax({
+                    url:'http://localhost:3000/signup/',
+                    method:'post',
+                    xhrFields:{withCredentials:true},
+                    data:{
+                        password:this.password,
+                        username:this.username
+                    },
+                    success:(response)=>{
+                        if(response["user_id"]=="-1"){
+                            swal("wrong",response['msg'],"error");
+                        }
+                        else if(response["user_id"]!="-1"){
+                            location.href = location.origin+"/index.html";
+                        }
+                        
+                    }
+                })
+             }
+      }
+   })
+
+</script>
+</body>
+
+</html>

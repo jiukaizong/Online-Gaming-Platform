@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="css/index.css">
+    <script src="js/socket.io.js"></script>
+    <script src="js/vue.js"></script>
+    <script src="js/jquery-3.3.1.js"></script>
+    <script src="js/element.js"></script>
+    <script src="js/sweet-alert.js"></script>
+    <link rel="stylesheet" href="css/element.css">
+    <link rel="stylesheet" href="css/sweet-alert.css">
+    <title>test</title>
+</head>
+
+<body>
+    <div id="app">
+        <div class="index-nav">
+            <a href="#" v-if="user.username!=''"
+                style="float: right;position: relative;right: 30px;top: 25px;text-decoration: none; margin-left: 30px;">
+                Sign out
+            </a>
+            <a href="#" v-if="user.username!=''"
+                style="float: right;position: relative;right: 30px;top: 25px;text-decoration: none;">
+                {{user.username}}
+            </a>
+
+            <div class="logo-container">
+                <img class="logo">
+                <div style="align-self: center;font-size: 25px;font-family: xingshu;"
+                    onclick="window.location.href='/index.html'">Connect 4</div>
+                <el-link class="nav-link" type="primary" onclick="window.location.href='/index.html'">Homepage</el-link>
+                <el-link class="nav-link" onclick="window.location.href='/history.html'">Game History</el-link>
+
+            </div>
+        </div>
+        <div id="game-container">
+            
+            <el-dialog title="create a game" :visible.sync="dialogcreateVisible">
+
+                <div class="form-input">
+                    <span class="tag-span" style="margin-bottom: 10px;">Game Name</span>
+                    <el-input v-model="gameName" maxlength="10" show-word-limit placeholder="Game Name"></el-input>
+                </div>
+                <el-radio-group style="margin-top: 15px;" v-model="is_public">
+                    <el-radio :label="'public'">public</el-radio>
+                    <el-radio :label="'private'">private</el-radio>
+                </el-radio-group>
+
+                <div slot="footer" class="dialog-footer">
+                    <el-button @click="dialogcreateVisible = false">Cancel</el-button>
+                    <el-button type="primary" @click='create_game'>Create</el-button>
+                </div>
+            </el-dialog>
+
+            <el-dialog title="Add a friend" :visible.sync="dialogaddFriendVisible">
+
+                <div class="form-input">
+                    <span class="tag-span" style="margin-bottom: 10px;">Input Name</span>
+                    <el-input style="margin-top: 15px;" v-model="search_username" placeholder="User Name"></el-input>
+                </div>
+                <el-button type="primary" @click="search_user" style="margin-top: 15px;">Search users</el-button>
+                <div style="margin-top: 15px;">
+                    <span>Searched Users</span>
+                    <el-table :data="searched_users" style="width: 100%">
+                        <el-table-column prop="name" width="180">
+                        </el-table-column>
+                        <el-table-column label="">
+                            <template slot-scope="scope">
+                                <el-button type="primary" size="mini" @click="add_friend(scope.row.id)">Add</el-button>
+                            </template>
+                        </el-table-column>
+                    </el-table>
+                </div>
+            </el-dialog>
+
+            <el-dialog title="FriendInfo" :visible.sync="dialogfriendInfoVisible">
+                <div style="margin-top: 15px;">
+                    <span>Game Records</span>
+                    <el-table :data="friend_game_list" style="width: 100%">
+                        <el-table-column label="first user">
+                            <template slot-scope="scope">
+                                <span>{{scope.row.first_user.name}}</span>
+                            </template>
+                        </el-table-column>
+                        <el-table-column label="second user" >
+                            <template slot-scope="scope">
+                                <span>{{scope.row.second_user.name}}</span>
+                            </template>
+                        </el-table-column>
+                        <el-table-column label="result">
+                            <template slot-scope="scope">
+                                
+                                <span v-if="scope.row.winner">{{scope.row.winner.id==user_id?'won':'defeat'}} </span>
+                            </template>
+                        </el-table-column>
+                    </el-table>
+                </div>
+            </el-dialog>
+
+            <div>
+                <h3 style="text-align: right;">Game List</h3>
+                <el-button type="primary" @click="dialogcreateVisible=true">
+                    Create Game
+                </el-button>
+                <el-table title="Game List" :data="game_list" stripe style="width: 100%">
+                    <el-table-column  label="ID">
+                        <template slot-scope="scope">
+                            <el-link @click="watch_game(scope.row.id)" type="primary">{{scope.row.id}} </el-link>
+                        </template>
+                    </el-table-column>
+                    <el-table-column prop="name" label="Game Name">
+                    </el-table-column>
+                    <el-table-column prop="state" label="Statue">
+                    </el-table-column>
+                    <el-table-column prop="ctime" label="Start Time">
+                    </el-table-column>
+                </el-table>
+            </div>
+            
+            <div style="margin-top: 20px;">
+                <h3  style="text-align: right;">Friends List</h3>
+                <el-button type="primary" @click="dialogaddFriendVisible=true">Add a friend</el-button>
+                <el-table title="Friends List" :data="friend_list" stripe style="width: 100%">
+                    <el-table-column label="Name">
+                        <template slot-scope="scope">
+                           <el-link type="primary" @click="get_friend_detail(scope.row.name)">{{scope.row.name}} </el-link>
+                        </template>
+                    </el-table-column>
+                    <el-table-column prop="state" label="Statue">
+                    </el-table-column>
+                    <el-table-column>
+                        <template slot-scope="scope">
+                            <el-button type="danger" size="mini" @click="delete_friend(scope.row.id)">Delete</el-button>
+                        </template>
+                    </el-table-column>
+                </el-table>
+            </div>
+
+
+        </div>
+    </div>
+
+    <script>
+    </script>
+    <script>
+        var vm = new Vue({
+            el: "#app",
+            data: {
+                user: {
+                    username: "",
+                },
+                user_id:"",
+                is_public: "public",
+                dialogcreateVisible: false,
+                dialogaddFriendVisible: false,
+                dialogfriendInfoVisible:false,
+                gameName: "",
+                search_username: "",
+                searched_users: [],
+                game_list: [],
+                friend_list: [],
+                friend_game_list:[]
+            },
+            methods: {
+                create_game() {
+                    localStorage.setItem("gameName", this.gameName);
+                    localStorage.setItem("is_public", this.is_public);
+                    window.open("game.html");
+                    this.gameName="";
+                    this.is_public = "public";
+                    this.dialogcreateVisible = false;
+                },
+
+                watch_game(game_id){
+                    localStorage.setItem("watch_game_id",game_id);
+                    window.open("game_watch.html");
+                },
+                get_friend_detail(username){
+                    $.ajax({
+                            url: "http://localhost:3000/user/"+username+"/",
+                            method: "get",
+                            xhrFields: {
+                                withCredentials: true
+                            },
+                            
+                            success: (response) => {
+                                this.friend_game_list = response.game_list;
+                                this.dialogfriendInfoVisible = true;
+                            }
+                        })
+                },
+                search_user() {
+                    if (this.search_username != "") {
+                        $.ajax({
+                            url: "http://localhost:3000/users?name="+this.search_username,
+                            method: "get",
+                            xhrFields: {
+                                withCredentials: true
+                            },
+                            
+                            success: (response) => {
+                                this.searched_users = response.searched_users;
+                            }
+                        })
+                    }
+                },
+                add_friend(user_id) {
+                    this.dialogaddFriendVisible = false;
+                    this.searched_users = [];
+                    this.search_username = ""
+                    socket.emit("send_request",{accept_user_id:user_id});
+                },
+                delete_friend(user_id){
+                    $.ajax({
+                        url:"http://localhost:3000/delete_friend/",
+                        method:"post",
+                        xhrFields:{
+                            withCredentials:true
+                        },
+                        data:{
+                            delete_user_id:user_id
+                        },
+                        success:(response)=>{
+                            if(response.result=="0"){
+                                this.friend_list.splice(this.friend_list.findIndex(user=>{
+                                    user.id==user_id
+                                }),1);
+                                this.$notify({
+                                    title: 'Success',
+                                    message: 'You delete a user successfully',
+                                    type:"info"
+                                    });
+                            }
+                        }
+                    })
+                }
+            },
+            beforeCreate() {
+                $.ajax({
+                    url: 'http://localhost:3000/',
+                    method: 'post',
+                    xhrFields: {
+                        withCredentials: true
+                    },
+                    data: {
+                        password: this.password,
+                        username: this.username
+                    },
+                    success: (response) => {
+                        if (response["user_id"] == "-1") {
+                            location.href = location.origin + '/login.html';
+                        } else {
+                            this.game_list = response["game_list"];
+                            this.user_id = response["user_id"];
+                            socket = io("http://localhost:3001/user" + response["user_id"]);
+                            socket.on("connect", () => {
+                                console.log("connect user namespace");
+                            });
+                            socket.on("receive_request", (msg) => {
+                                this.$confirm('user '+msg.name+' send a friend request, do you accept?', 'New Friend', {
+                                    confirmButtonText: 'Accept',
+                                    cancelButtonText: 'Deny',
+                                    type: 'info'
+                                }).then(() => {
+                                    this.$message({
+                                        type: 'success',
+                                        message: 'Accepted!'
+                                    });
+                                    socket.emit("send_accept",{request_user_id:msg.request_user_id});
+                                    this.friend_list.push({name:msg.name,id:msg.request_user_id,state:"online"});
+                                }).catch(() => {
+                                    this.$message({
+                                        type: 'info',
+                                        message: 'You Deny'
+                                    });
+                                });
+                            });
+                            socket.on("receive_accept",(msg)=>{
+                                this.$notify({
+                                    title: 'Good News',
+                                    message: 'Get new friend:'+msg.name,
+                                    type: 'success',
+                                    duration:0
+                                    });
+                                $.ajax({
+                                    url:"http://localhost:3000/add_friend/",
+                                    method:"post",
+                                    xhrFields:{
+                                        withCredentials:true
+                                    },
+                                    data:{
+                                        accept_user_id:msg.accept_user_id
+                                    },
+                                    success:(add_response)=>{
+                                        if(response.result='0')
+                                            this.friend_list.push({name:msg.name,id:msg.accept_user_id,state:"online"});
+                                    }
+                                });
+
+                            })
+                        }
+                    }
+                });
+                $.ajax({
+                    url: 'http://localhost:3000/get_friends/',
+                    method: 'post',
+                    xhrFields: {
+                        withCredentials: true
+                    },
+                    data: {
+
+                    },
+                    success: (response) => {
+                        if (response["user_id"] == "-1") {
+                            location.href = location.origin + '/login.html';
+                        } else {
+                            this.friend_list = response["friend_list"];
+                        }
+                    }
+                })
+            },
+        })
+    </script>
+</body>
+
+</html>

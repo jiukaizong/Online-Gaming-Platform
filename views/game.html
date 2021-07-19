@@ -1,0 +1,141 @@
+<!doctype html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="description" content="Artificial Intelligence based on the Minimax- and α-β-Pruning principles.">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Connect 4</title>
+    <link rel="stylesheet" href="css/game.css">
+</head>
+
+<body>
+    <div id="container">
+        <h3 id="status">Wating</h3>
+        <div class="box-left">
+            <div id="coin"></div>
+            <table id="game_board" cellpadding="0"></table>
+
+        </div>
+
+        <div class="box-right">
+            <div id="options">
+
+                
+                
+            </div>
+
+            <div id="debug">
+
+            </div>
+        </div>
+    </div>
+    <script src="js/jquery-1.11.2.min.js"></script>
+    <script src="js/jquery-ui.min.js"></script>
+    <script src="js/board.js"></script>
+    <script src="js/connect-four.js"></script>
+    <script src="js/socket.io.js"></script>
+    <script>
+        waitSocket = null;
+        chatSocket = null;
+        gameSocket = null;
+        gameId = null;
+        window.onload = function () {
+            if (!localStorage.getItem("gameName") || !localStorage.getItem("is_public")) {
+                alert("you don't create game,please go to homepage");
+                location.href = location.origin + "/index.html";
+                return;
+            }
+            $.ajax({
+                url: 'http://localhost:3000/creategame/',
+                method: 'post',
+                xhrFields: {
+                    withCredentials: true
+                },
+                data: {
+                    gameName: localStorage.getItem("gameName"),
+                    is_public: localStorage.getItem("is_public")
+                },
+                success: (response) => {
+                    if (response["game_id"] == "-1") {
+                        location.href = location.origin + '/login.html';
+                    } else if (response["round"] == "0") {
+                        window.user_round = 0;
+                        var game_id = response["game_id"];
+                        gameId = game_id;
+                        waitSocket = io("http://localhost:3001/wait" + game_id);
+                        waitSocket.on("connect", () => {
+                            console.log("wait for someone join");
+                        });
+                        waitSocket.on("wait", (msg) => {
+                            console.log(msg);
+                            if (msg == "success") {
+                                gameSocket = io("http://localhost:3001/game" + game_id);
+                                chatSocket = io("http://localhost:3001/chat" + game_id);
+                                gameSocket.on("connect", () => {
+                                    console.log("join the game " + game_id);
+                                })
+                                chatSocket.on("connect", () => {
+                                    console.log("join the chat " + game_id);
+                                })
+                                gameSocket.on("receive_move", (msg) => {
+                                    console.log(msg);
+                                    Game.place(msg);
+                                })
+                                chatSocket.on("receive_message", (msg) => {
+                                    console.log(msg);
+                                })
+                                Start();
+                            }
+
+                        })
+                    } else if (response["round"] == "1") {
+                        window.user_round = 1;
+                        var game_id = response["game_id"];
+                        gameId = game_id;
+                        gameSocket = io("http://localhost:3001/game" + game_id);
+                        chatSocket = io("http://localhost:3001/chat" + game_id);
+                        gameSocket.on("connect", () => {
+                            console.log("join the game " + game_id);
+                        })
+                        chatSocket.on("connect", () => {
+                            console.log("join the chat " + game_id);
+                        })
+                        gameSocket.on("receive_move", (msg) => {
+                            console.log(msg);
+                            Game.place(msg);
+                        })
+                        chatSocket.on("receive_message", (msg) => {
+                            console.log(msg);
+                        })
+                        Start();
+                    }
+                }
+            })
+        }
+
+        function GameOver(winner_round) {
+            $.ajax({
+                url: 'http://localhost:3000/gameover/',
+                method: 'post',
+                xhrFields: {
+                    withCredentials: true
+                },
+                data: {
+                    game_id:window.gameId,
+                    winner_round:winner_round,
+                    user_round:window.user_round
+                },
+                success: (response) => {
+                    console.log(response);
+                    localStorage.removeItem("gameName");
+                    localStorage.removeItem("is_public");
+                }
+            });
+
+        }
+    </script>
+</body>
+
+</html>
